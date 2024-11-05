@@ -16,24 +16,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-
       - run: npm ci --legacy-peer-deps
-
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
-
       - name: Run Playwright e2e Tests
-        run: |
-          npx nx run swap-ticket-app-e2e:e2e -- --reporter=html
-        continue-on-error: false
-
+        run: npx nx run swap-ticket-app-e2e:e2e -- --reporter=html
       - name: Upload Playwright Report
-        if: ${{ always() }}
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
@@ -45,43 +38,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-
       - run: npm ci --legacy-peer-deps
-      
       - name: Install wait-on
-        run: npm install -g wait-on  
-        
+        run: npm install -g wait-on
+      - name: Build API
+        run: npx nx build swap-ticket-api
       - name: Start API Server
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
           PORT: ${{ secrets.PORT }}
         run: |
-          echo "Starting API server..."
           npx nx serve swap-ticket-api > api-server.log 2>&1 &
-          echo "Server started, logging output to api-server.log"
-      
-      - name: Wait and Check API Server Log
-        run: |
-          sleep 30
-          echo "Server log:"
-          tail -n 20 api-server.log
-      
-      - name: Wait for API to be Ready with wait-on
-        run: |
-          echo "Waiting for API to be available on http://localhost:$PORT/api"
-          wait-on http://localhost:$PORT/api
-          echo "API is now available!"
-          
-      - name: Ping API to Check Availability
-        run: |
-          sleep 10  # Wacht 10 seconden voor de server om op te starten
-          curl --fail http://localhost:$PORT/api || exit 1
-
+          echo "Server started, waiting for it to be ready..."
+          wait-on http://localhost:${{ secrets.PORT }}/api -t 60000
+      - name: Check API Server Log
+        run: cat api-server.log
       - name: Run API e2e Tests
         run: npx nx run swap-ticket-api-e2e:e2e
         continue-on-error: true
@@ -90,17 +65,14 @@ jobs:
     name: Deploy API to Heroku
     runs-on: ubuntu-latest
     needs: [api-tests, frontend-tests]
-    if: ${{ success() }}
+    if: success() && github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-
       - run: npm ci --legacy-peer-deps
-
       - name: Deploy to Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
@@ -113,17 +85,14 @@ jobs:
     name: Deploy Frontend to Vercel
     runs-on: ubuntu-latest
     needs: [api-tests, frontend-tests]
-    if: ${{ success() }}
+    if: success() && github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-
       - run: npm ci --legacy-peer-deps
-
       - name: Deploy to Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
