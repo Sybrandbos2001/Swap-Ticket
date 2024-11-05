@@ -11,7 +11,8 @@ permissions:
   contents: read
 
 jobs:
-  main:
+  setup:
+    name: Setup and Install Dependencies
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,13 +29,18 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      # Run e2e tests for Angular with Playwright and generate HTML report
-      - name: Run Playwright e2e tests for Angular
+  frontend-tests:
+    name: Run Frontend e2e Tests with Playwright
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Playwright e2e Tests
         run: |
           npx nx run swap-ticket-app-e2e:e2e -- --reporter=html
         continue-on-error: false
 
-      # Upload Playwright HTML report as artifact
       - name: Upload Playwright Report
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -43,19 +49,32 @@ jobs:
           path: apps/swap-ticket-app-e2e/playwright-report
           retention-days: 7
 
-      
-      # Start API server in the background
+  api-tests:
+    name: Run API e2e Tests
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Start API Server
         run: npx nx serve swap-ticket-api &
-        
-      # Run e2e tests for API
-      - name: Run e2e tests for API
+      
+      - name: Wait for API to Start
+        run: sleep 30  # Wacht 30 seconden zodat de API kan opstarten
+
+      - name: Run API e2e Tests
         run: npx nx run swap-ticket-api-e2e:e2e
         continue-on-error: false
 
-      # Deploy API to Heroku
-      - name: Deploy API to Heroku
-        if: ${{ success() }}
+  deploy-api:
+    name: Deploy API to Heroku
+    runs-on: ubuntu-latest
+    needs: [api-tests, frontend-tests]
+    if: ${{ success() }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
           HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
@@ -63,9 +82,15 @@ jobs:
           git remote add heroku https://git.heroku.com/${{ env.HEROKU_APP_NAME }}.git
           git push heroku `git subtree split --prefix apps/swap-ticket-api master`:refs/heads/master --force
 
-      # Deploy frontend to Vercel
-      - name: Deploy Frontend to Vercel
-        if: ${{ success() }}
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    needs: [api-tests, frontend-tests]
+    if: ${{ success() }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
