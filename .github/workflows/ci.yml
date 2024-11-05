@@ -11,58 +11,30 @@ permissions:
   contents: read
 
 jobs:
-  setup:
-    name: Setup and Install Dependencies
+  main:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Cache node_modules
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
       - run: npm ci --legacy-peer-deps
-      - run: npm install -D @nrwl/nx@latest --legacy-peer-deps
-
-      - uses: nrwl/nx-set-shas@v4
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-  api-tests:
-    name: Run API e2e Tests
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - uses: actions/checkout@v4
-
-      # Start API server in the background
-      - name: Start API Server
-        run: npx nx serve swap-ticket-api &
-
-      # Run e2e tests for API
-      - name: Run API e2e Tests
-        run: npx nx e2e swap-ticket-api-e2e
-        continue-on-error: false
-
-  frontend-tests:
-    name: Run Frontend e2e Tests with Playwright
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - uses: actions/checkout@v4
-
       # Run e2e tests for Angular with Playwright and generate HTML report
-      - name: Run Playwright e2e Tests
+      - name: Run Playwright e2e tests for Angular
         run: |
           npx nx run swap-ticket-app-e2e:e2e -- --reporter=html
         continue-on-error: false
 
-      # Upload Playwright HTML Report as Artifact
+      # Upload Playwright HTML report as artifact
       - name: Upload Playwright Report
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -71,15 +43,19 @@ jobs:
           path: apps/swap-ticket-app-e2e/playwright-report
           retention-days: 7
 
-  deploy-api:
-    name: Deploy API to Heroku
-    runs-on: ubuntu-latest
-    needs: [api-tests, frontend-tests]
-    if: ${{ success() }}
-    steps:
-      - uses: actions/checkout@v4
+      
+      # Start API server in the background
+      - name: Start API Server
+        run: npx nx serve swap-ticket-api &
+        
+      # Run e2e tests for API
+      - name: Run e2e tests for API
+        run: npx nx run swap-ticket-api-e2e:e2e
+        continue-on-error: false
 
-      - name: Deploy to Heroku
+      # Deploy API to Heroku
+      - name: Deploy API to Heroku
+        if: ${{ success() }}
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
           HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
@@ -87,15 +63,9 @@ jobs:
           git remote add heroku https://git.heroku.com/${{ env.HEROKU_APP_NAME }}.git
           git push heroku `git subtree split --prefix apps/swap-ticket-api master`:refs/heads/master --force
 
-  deploy-frontend:
-    name: Deploy Frontend to Vercel
-    runs-on: ubuntu-latest
-    needs: [api-tests, frontend-tests]
-    if: ${{ success() }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Vercel
+      # Deploy frontend to Vercel
+      - name: Deploy Frontend to Vercel
+        if: ${{ success() }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
