@@ -11,13 +11,11 @@ permissions:
   contents: read
 
 jobs:
-  setup:
-    name: Setup and Install Dependencies
+  frontend-tests:
+    name: Run Frontend e2e Tests with Playwright
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -28,13 +26,6 @@ jobs:
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
-
-  frontend-tests:
-    name: Run Frontend e2e Tests with Playwright
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Run Playwright e2e Tests
         run: |
@@ -52,15 +43,21 @@ jobs:
   api-tests:
     name: Run API e2e Tests
     runs-on: ubuntu-latest
-    needs: setup
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci --legacy-peer-deps
 
       - name: Start API Server
         run: npx nx serve swap-ticket-api &
       
       - name: Wait for API to Start
-        run: sleep 30  # Wacht 30 seconden zodat de API kan opstarten
+        run: sleep 30
 
       - name: Run API e2e Tests
         run: npx nx run swap-ticket-api-e2e:e2e
@@ -73,6 +70,13 @@ jobs:
     if: ${{ success() }}
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci --legacy-peer-deps
 
       - name: Deploy to Heroku
         env:
@@ -89,6 +93,13 @@ jobs:
     if: ${{ success() }}
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci --legacy-peer-deps
 
       - name: Deploy to Vercel
         env:
