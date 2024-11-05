@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   frontend-tests:
-    name: Run Frontend e2e Tests with Playwright
+    name: Run Frontend e2e Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -66,6 +66,11 @@ jobs:
           sleep 10
           echo "Server log:"
           tail -n 20 api-server.log
+          
+      - name: Ping API to Check Availability
+        run: |
+          sleep 10  # Wacht 10 seconden voor de server om op te starten
+          curl --fail http://localhost:3000/api || exit 1
 
       - name: Run API e2e Tests
         run: npx nx run swap-ticket-api-e2e:e2e
