@@ -54,14 +54,25 @@ jobs:
       - run: npm ci --legacy-peer-deps
 
       - name: Start API Server
-        run: npx nx serve swap-ticket-api > api-server.log 2>&1 &
-      
-      - name: Wait for API to be Ready
         run: |
-          until $(curl --output /dev/null --silent --head --fail http://localhost:3000/api); do
-            echo "Waiting for API to be ready..."
-            sleep 5
-          done
+            echo "Starting API server..."
+            npx nx serve swap-ticket-api > api-server.log 2>&1 &
+            echo "Server started, logging output to api-server.log"
+
+        - name: Wait and Check API Server Log
+          run: |
+            sleep 10
+            echo "Checking server log:"
+            tail -n 20 api-server.log
+
+        - name: Verify API Availability
+          run: |
+            if curl --output /dev/null --silent --head --fail http://localhost:3000/api; then
+              echo "API is running and available."
+            else
+              echo "API is not responding on expected URL."
+              exit 1
+            fi
 
       - name: Run API e2e Tests
         run: npx nx run swap-ticket-api-e2e:e2e
