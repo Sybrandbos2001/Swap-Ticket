@@ -52,7 +52,10 @@ jobs:
           cache: 'npm'
 
       - run: npm ci --legacy-peer-deps
-
+      
+      - name: Install wait-on
+        run: npm install -g wait-on  
+        
       - name: Start API Server
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
@@ -61,9 +64,15 @@ jobs:
           npx nx serve swap-ticket-api > api-server.log 2>&1 &
           echo "Server started, logging output to api-server.log"
       
+      - name: Wait for API to be Ready with wait-on
+        run: |
+          echo "Waiting for API to be available on http://localhost:3000/api"
+          wait-on http://localhost:3000/api
+          echo "API is now available!"
+      
       - name: Wait and Check API Server Log
         run: |
-          sleep 10
+          sleep 30
           echo "Server log:"
           tail -n 20 api-server.log
           
