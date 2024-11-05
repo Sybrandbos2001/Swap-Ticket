@@ -62,7 +62,7 @@ jobs:
       - name: Wait and Check API Server Log
         run: |
           sleep 10
-          echo "Checking server log:"
+          echo "Server log:"
           tail -n 20 api-server.log
 
       - name: Run API e2e Tests
