@@ -55,7 +55,7 @@ jobs:
 
       - name: Start API Server
         env:
-        MONGO_URL: ${{ secrets.MONGO_URL }}
+          MONGO_URL: ${{ secrets.MONGO_URL }}
         run: |
           echo "Starting API server..."
           npx nx serve swap-ticket-api > api-server.log 2>&1 &
