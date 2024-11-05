@@ -19,11 +19,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Cache node_modules
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - run: npm ci --legacy-peer-deps
+
+      - uses: nrwl/nx-set-shas@v4
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
