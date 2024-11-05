@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: 'false'
 
       - run: npm ci --legacy-peer-deps
 
@@ -38,11 +38,11 @@ jobs:
 
       # Start API server in the background
       - name: Start API Server
-        run: npm run start:dev &  # Pas dit aan naar je startcommando voor de API
+        run: npx nx serve swap-ticket-api &
 
       # Run e2e tests for API
       - name: Run API e2e Tests
-        run: npm run test:e2e  # Pas aan naar het juiste testcommando voor de API e2e-tests
+        run: npx nx e2e swap-ticket-api-e2e
         continue-on-error: false
 
   frontend-tests:
