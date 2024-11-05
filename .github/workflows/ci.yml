@@ -70,17 +70,11 @@ jobs:
           sleep 30
           echo "Server log:"
           tail -n 20 api-server.log
-      
-      - name: Wait for API to be Ready with wait-on
-        run: |
-          echo "Waiting for API to be available on http://localhost:${PORT}/api"
-          wait-on http://localhost:${PORT}/api
-          echo "API is now available!"
           
       - name: Ping API to Check Availability
         run: |
           sleep 10  # Wacht 10 seconden voor de server om op te starten
-          curl --fail http://localhost:${PORT}/api || exit 1
+          curl --fail http://localhost:${{ secrets.PORT }}/api || exit 1
 
       - name: Run API e2e Tests
         run: npx nx run swap-ticket-api-e2e:e2e
