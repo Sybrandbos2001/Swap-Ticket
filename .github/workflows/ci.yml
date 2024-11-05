@@ -57,7 +57,7 @@ jobs:
         run: npx nx serve swap-ticket-api &
       
       - name: Wait for API to Start
-        run: sleep 30
+        run: sleep 60
 
       - name: Run API e2e Tests
         run: npx nx run swap-ticket-api-e2e:e2e
