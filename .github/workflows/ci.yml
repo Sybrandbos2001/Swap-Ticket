@@ -26,6 +26,7 @@ jobs:
           cache: 'npm'
 
       - run: npm ci --legacy-peer-deps
+      - run: npm install -D @nrwl/nx
 
       - uses: nrwl/nx-set-shas@v4
 
